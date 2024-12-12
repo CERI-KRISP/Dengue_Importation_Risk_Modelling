@@ -93,13 +93,15 @@ spdf_world <- spdf_world %>%
 ### Plotting Transmission Potential for 14 high incidence countries and African continent. 
 world_raster_plot <- ggplot() +
   geom_sf(data=spdf_africa,lwd=0.6,fill = "#C0C0C0",show.legend = FALSE)+
-  #geom_raster(data = as.data.frame(Africa_crop, xy = TRUE), aes(x = x, y = y, fill = layer)) +
-  #geom_sf(data=spdf_africa,lwd=0.6,fill = "transparent",show.legend = FALSE)+
+  geom_raster(data = as.data.frame(pop3, xy = TRUE), aes(x = x, y = y, fill = SEDAC_POP_2000.01.01_gs_3600x1800)) +
+  geom_sf(data=spdf_africa,lwd=0.6,fill = "transparent",show.legend = FALSE)+
   geom_sf(data=spdf_africa_subregion,lwd=0.6,aes(colour = subregion),fill = "transparent",show.legend = FALSE)+
-  scale_fill_gradientn(name = "Transmission Potential * \n Population Density", colours = custom_palette , na.value = "transparent") +
-  geom_text(data = centroids, aes(label = adm0_a3_is, x = st_coordinates(centroids)[, 1], 
-                                       y = st_coordinates(centroids)[, 2]),
-                 size = 2.2, fontface = "bold", family = "sans")+
+  scale_colour_manual(values= c("Eastern Africa" = "#9dcced", "Middle Africa" ="#a8e6cf","Southern Africa"="#0077b6","Western Africa"="#e498ff","Northern Africa" = "#9667e0"), 
+                      name= "Africa: Sub-Region")+
+  scale_fill_gradientn(name = "Population Density", colours = my_palette , na.value = "transparent") +
+  #geom_text(data = centroids, aes(label = adm0_a3_is, x = st_coordinates(centroids)[, 1], 
+   #                                    y = st_coordinates(centroids)[, 2]),
+    #             size = 2.2, fontface = "bold", family = "sans")+
   theme_minimal()+
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
@@ -116,7 +118,7 @@ world_raster_plot <- ggplot() +
   guides(color = guide_legend(override.aes = list(size = 8)))
 world_raster_plot
 
-ggsave(plot = world_raster_plot, "Final/Paper_Reproducibility/Africa_plainMap.pdf")
+ggsave(plot = world_raster_plot, "Final/Paper_Reproducibility/Africa_map_B.pdf")
 
 
 ## Spatial plots with Transmission Potential 
@@ -667,13 +669,13 @@ library(scales)
 ### Bocplot of risk for each destination country
 JJ3 <- JJ %>%  
   filter(!Dest.Country %in% c("Reunion", "Seychelles","Cape Verde")) %>% 
-  filter( TP < 1 )
+  filter( TP >1 )
 
 JJ3$Dest.Country <- with(JJ3, reorder(Dest.Country, -log(sumRisk),median,na.rm=T))
 
 p3 <- JJ3 %>% 
   ggplot()+
-  geom_boxplot(aes(x=Dest.Country, y=log(sumRisk), fill= Region),lwd=0.5) +
+  geom_boxplot(aes(x=Dest.Country, y=log(normalized), fill= Region),lwd=0.5) +
   scale_fill_manual(values = c("#cb8587","#8f2b08","#650144","#d6d4ad","#645e33"), name= "Risk to") + 
   scale_y_continuous(labels = c("2.06e-09","3.05e-07","4.5e-05","0.006"), breaks = c(-20,-15,-10,-5)) + # Assign colors based on the continent 
   #scale_y_continuous(labels = c("1.389e-11","2.06e-09","3.05e-07","4.5e-05","0.006","1"), breaks = c(-25,-20,-15,-10,-5,0)) + # Assign colors based on the continent   theme_minimal()+
@@ -682,13 +684,13 @@ p3 <- JJ3 %>%
         legend.box = "horizontal",
         legend.text = element_text(family="serif",size = 20, face="bold"),
         legend.title = element_text(family="serif",size = 20, face="bold"),
-        axis.text.x = element_text(size=20,angle = 45, hjust = 1,face="bold"),
-        axis.text.y = element_text(size=18,face="bold"),
+        axis.text.x = element_text(size=21,angle = 47, hjust = 1),
+        axis.text.y = element_text(size=22),
         axis.title = element_text(size=26),
         plot.title = element_text(family="serif",size=35,face = "bold"),
         plot.subtitle = element_text(size= 22))+
   ylab("Risk of Importation") + xlab("Destination Country") +
-  labs(title="Risk of importation 2019 into Africa", subtitle= "Filtered out low risk district (TP < 1) ") 
+  labs(title="Risk of importation 2019 into Africa", subtitle= "Filtered out low risk district (TP < 1)") 
 p3
 
 ggsave("Final/Paper_Reproducibility/Barplot_risk_tp_greaterthan1.pdf", units = "in", plot=p3)
@@ -838,7 +840,8 @@ travel.plot <- risk.imp.data.2 %>%
   #geom_text(aes(label=totRegionsTravel), vjust=1.6, color="white",
   # position = position_dodge(0.9), size=3.5)+
   #scale_fill_manual(values=country_colors)+
-  scale_fill_manual(values=c("#aacc00","#5f0f40","#577590"))+
+  scale_fill_manual(values=c("#e26d5c","#61a5c2","#a4c3b2"))+
+ # scale_fill_manual(values=c("#aacc00","#5f0f40","#577590"))+
   #scale_y_continuous(trans = "log")+
   scale_x_discrete(limits= c("Algeria","Egypt","Libya","Morocco","Tunisia","Sudan"," ",
                              "Burkina Faso","Cape Verde","Ivory Coast","Gambia","Ghana","Guinea","Guinea Bissau",
@@ -1135,5 +1138,677 @@ ggplot() +
   guides(color = guide_legend(override.aes = list(size = 8)))
 
 
+##############################################################################################################################
+##################################################### AFRICA ###########################################################
+##############################################################################################################################
+
+##############################################################################################################################
+#####################################################. FIGURE 5  ###########################################################
+##############################################################################################################################
+
+Africa.risk <- fread("Review/Risk_import_within_Africa.csv")
+
+North_Africa <-  c("Algeria","Egypt","Libya","Mauritania","Morocco","Tunisia","Sahrawi ADR","Sudan")
+
+West_Africa <-   c("Benin", "Burkina Faso","Cabo Verde","Ivory Coast","Cote D'Ivoire","Gambia","Ghana","Guinea","Guinea-Bissau",
+                   "Liberia","Mali","Niger","Nigeria","Senegal","Sierra Leone","Togo")
+
+Central_Africa <-  c("Angola","Cameroon","Central African Republic","Chad","Democratic Republic of the Congo","Republic of the Congo",
+                     "Equatorial Guinea","Sao Tome and Principe","Gabon","Congo")
+
+East_Africa <- c("Comoros","Burundi","Djibouti","Eritrea","Ethiopia","Kenya","Madagascar","Malawi","Mozambique","Rwanda","Somalia","South Sudan",
+                 "United Republic of Tanzania","Tanzania","Uganda","Zambia","Zimbabwe")
+
+Southern_Africa <- c("Mauritius","Botswana","Eswatini","Lesotho","Namibia","South Africa","Swaziland","Seychelles")
+
+country_region_df <- data.frame(Region = rep(c("Northern Africa", "West Africa", "Central Africa", "East Africa", "Southern Africa"), 
+                                             c(length(North_Africa), length(West_Africa), length(Central_Africa), length(East_Africa), length(Southern_Africa))),
+                                Country = c(North_Africa, West_Africa, Central_Africa, East_Africa, Southern_Africa))
 
 
+Africa.risk <- Africa.risk %>% 
+  left_join(country_region_df, by = c("Orig.Country" = "Country"))
+
+Africa.risk.mean <- Africa.risk %>% 
+  group_by(Dest,Dest.Country, Region, Date) %>% 
+  summarise(meanRisk = sum(normalized_R_import, na.rm=T),
+            Longitude.y = Longitude.y,
+            Latitude.y = Latitude.y) %>% 
+  unique()
+Africa.risk.mean <-Africa.risk.mean %>% 
+  group_by(Dest,Dest.Country, Region) %>% 
+  summarise(meanRisk = mean(meanRisk, na.rm=T),
+            Longitude.y = Longitude.y,
+            Latitude.y = Latitude.y) %>% 
+  unique()
+  
+Africa.risk.mean$Orig.Country <- factor(Africa.risk.mean$Orig.Country, 
+                                        levels = c(
+                                          # West Africa
+                                          "Benin", "Burkina Faso", "Ivory Coast", "Ghana", "Guinea", 
+                                          "Mali", "Niger", "Nigeria", "Senegal", "Togo", 
+                                          # East Africa
+                                          "Comoros", "Ethiopia", "Kenya", "Tanzania", 
+                                          # Central Africa
+                                          "Chad", "Sao Tome And Principe", 
+                                          # Southern Africa
+                                          "Angola", "Mauritius", 
+                                          # Northern Africa
+                                          "Mauritania"
+                                        ))
+
+
+## Plotting by Rergion from which the risk is coming from
+pdf("Review/Fig_Africa_review_.pdf", width=13, height=15)
+ggplot() +
+  geom_raster(data = as.data.frame(Africa_crop, xy = TRUE), aes(x = x, y = y, fill = layer)) +
+  scale_fill_gradientn(name = "Transmission Potential * \nPopulation Density", colours = custom_palette, na.value = "transparent") +
+  geom_sf(data=spdf_africa,lwd=0.55,colour="#2b2d42",fill=NA,show.legend = FALSE)+
+  geom_sf(data=spdf_africa %>% filter(admin %in%  c("Angola", "Benin", "Burkina Faso", "Chad", "Comoros", "Côte d'Ivoire","Ivory Coast", "Ethiopia", "Ghana", "Guinea", 
+                                                    "Kenya", "Mali", "Mauritania", "Mauritius", "Niger", "Nigeria", "Sao Tome And Principe", "Senegal", 
+                                                    "Tanzania", "Togo")),lwd=1.2,colour="#2b2d42",fill=NA,show.legend = FALSE)+
+  geom_text_repel(data = centroids, aes(label = adm0_iso, x = st_coordinates(centroids)[, 1], 
+                                       y = st_coordinates(centroids)[, 2]),
+                size = 4.5, fontface = "bold", family = "sans")+
+  #geom_text_repel(box.padding = 0.5, max.overlaps = inf) +
+  scale_size(range = c(.1, 20), name="Risk of Importation") +
+  new_scale_colour() +
+  scale_alpha_continuous(guide = "none") +  # Remove alpha legend
+  new_scale_colour() +
+  #geom_sf(data=spdf_africa_subregion,lwd=0.6,fill=NA,colour="#B6A39E",show.legend = FALSE)+ # BOUNDARY FOR THE AFRICAN REGIONS 
+  new_scale_colour() +
+  geom_point(data = Africa.risk.mean %>% filter(meanRisk > 0.0000000001) , aes(x = Longitude.y, y = Latitude.y, size = meanRisk,colour=Region),shape=21,alpha=0.95,stroke =2) +
+  scale_colour_manual(values = c("West Africa"= "#8ac926","East Africa"="#2a9d8f","Central Africa" = "#ffbe0b","Northern Africa"="#f77f00","Southern Africa"="#904c77"), name = "Risk originating from")+ # Define colors
+  theme_minimal()+
+  theme(panel.background = element_rect(fill= "#fff", colour= NA),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank(),
+        legend.box= "horizontal",
+        legend.position = c(0.50,0),
+        legend.margin = margin(t = 0, r = 10, b = 0, l = 10),
+        legend.title = element_text(size=22),
+        legend.text = element_text(size=22))+
+  xlab(" ") + ylab(" ") + 
+  #coord_sf(ylim = c(-65, 45), xlim = c(-100,125)) +
+  guides(color = guide_legend(override.aes = list(shape=19,size = 8), nrow = 5))
+dev.off()
+
+
+
+
+## Plotting for each country 
+
+map_Africa_risk2 <- ggplot() +
+  geom_raster(data = as.data.frame(Africa_crop, xy = TRUE), aes(x = x, y = y, fill = layer)) +
+  scale_fill_gradientn(name = "Transmission Potential * \nPopulation Density", colours = custom_palette, na.value = "transparent") +
+  geom_sf(data=spdf_africa,lwd=0.25,colour="#2b2d42",fill=NA,show.legend = FALSE)+
+  #geom_text_repel(data = centroids, aes(label = adm0_iso, x = st_coordinates(centroids)[, 1], 
+   #                                     y = st_coordinates(centroids)[, 2]),
+    #              size = 4, fontface = "bold", family = "sans", max.overlaps = 100, min.segment.length = 5, point.padding = 0.1)+
+  #geom_text_repel(box.padding = 0.5, max.overlaps = inf) +
+  #scale_size(range = c(.1, 12), name="Risk of Importation") +
+  new_scale_colour() +
+  scale_alpha_continuous(guide = "none") +  # Remove alpha legend
+  new_scale_colour() +
+  #geom_sf(data=spdf_africa_subregion,lwd=0.6,fill=NA,colour="#B6A39E",show.legend = FALSE)+ # BOUNDARY FOR THE AFRICAN REGIONS 
+  new_scale_colour() +
+  geom_point(data = Africa.risk.mean %>% filter(meanRisk > 0.0000001) , aes(x = Longitude.y, y = Latitude.y, size = meanRisk,colour=Orig.Country),shape=21,alpha=0.85,stroke = 1.5) +
+  scale_colour_manual(values = c(
+    # West Africa (Warm Colors)
+    "Benin" = "#8dd3c7", 
+    "Burkina Faso" = "#ffffb3", 
+    "Ivory Coast" = "#DAA520", 
+    "Ghana" = "#bedaba", 
+    "Guinea" = "#fb8072", 
+    "Mali" = "#80b1d3", 
+    "Niger" = "#fdb462", 
+    "Nigeria" = "#b3de69", 
+    "Senegal" = "#fccde5", 
+    "Togo" = "#d9d9d9",
+    
+    # East Africa (Cold Colors)
+    "Comoros" = "#377eb8", 
+    "Ethiopia" = "#4daf4a", 
+    "Kenya" = "#984ea3", 
+    "Tanzania" = "#a65628",
+    
+    # Central Africa (Mixed Colors)
+    "Chad" = "#70e000", 
+    "Sao Tome And Principe" = "#0aefff",
+    
+    # Southern Africa (Neon Colors)
+    "Angola" = "#eeef20", 
+    "Mauritius" = "#ff206e",
+    
+    # Northern Africa (Neon Colors)
+    "Mauritania" = "#FF4500"
+  ), name = "Origin Country")+ # Define colors
+  theme_minimal()+
+  theme(panel.background = element_rect(fill= "#f8ffe5", colour= NA),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank(),
+        legend.box= "horizontal",
+        legend.position = c(0.50,0.10),
+        legend.margin = margin(t = 0, r = 10, b = 0, l = 10),
+        legend.title = element_text(size=22),
+        legend.text = element_text(size=22))+
+  xlab(" ") + ylab(" ") + coord_sf(ylim = c(-65, 45), xlim = c(-100,125)) +
+  guides(color = guide_legend(override.aes = list(shape=19,size = 8), nrow = 5))
+
+
+map_Africa_risk2
+
+
+##############################################################################################################################
+#####################################################. FIGURE 6  ###########################################################
+##############################################################################################################################
+
+TP.Africa <- fread("Final/Extracted_Africa_TP_withLag_2019.csv") ## Country level
+TP.Africa <- TP.Africa[,-c(3,16)]
+TP.Africa.long <- pivot_longer(TP.Africa, cols = 3:14, names_to = "Date", values_to = "TP")
+TP.Africa.long$Date <- as.Date(TP.Africa.long$Date)
+
+
+Africa.risk <- fread("Review/Risk_import_within_Africa.csv")
+Africa.risk.synchro <- Africa.risk %>% 
+  group_by(Dest.Country, African_Region,Date) %>% 
+  summarise(meanRisk = mean(normalized_R_import, na.rm=T)) %>% 
+  unique()
+Africa.risk.synchro$Date <- as.Date(Africa.risk.synchro$Date)
+
+Africa.risk.synchro.TP <- Africa.risk.synchro %>% 
+  left_join(TP.Africa.long, by= c("Dest.Country" = "COUNTRY", "Date" = "Date"))
+
+### Classifying regions
+North_Africa <-  c("Algeria","Egypt","Libya","Mauritania","Morocco","Tunisia","Sahrawi ADR")
+
+West_Africa <-   c("Benin", "Burkina Faso","Cabo Verde","Ivory Coast","Cote D'Ivoire","Gambia","Ghana","Guinea","Guinea-Bissau",
+              "Liberia","Mali","Niger","Nigeria","Senegal","Sierra Leone","Togo")
+
+Central_Africa <-  c("Burundi","Cameroon","Central African Republic","Chad","Democratic Republic of the Congo","Republic of the Congo",
+                "Equatorial Guinea","Sao Tome and Principe","Gabon")
+
+East_Africa <- c("Comoros","Djibouti","Eritrea","Ethiopia","Kenya","Madagascar","Mauritius","Rwanda","Seychelles","Somalia","South Sudan",
+            "Sudan","United Republic of Tanzania","Tanzania","Uganda")
+
+Southern_Africa <- c("Angola","Botswana","Eswatini","Lesotho","Malawi","Mozambique","Namibia","South Africa","Zambia","Zimbabwe","Swaziland")
+
+country_region_df <- data.frame(Region = rep(c("North Africa", "West Africa", "Central Africa", "East Africa", "Southern Africa"), 
+                                             c(length(North_Africa), length(West_Africa), length(Central_Africa), length(East_Africa), length(Southern_Africa))),
+                                Country = c(North_Africa, West_Africa, Central_Africa, East_Africa, Southern_Africa))
+
+
+Africa.risk.synchro.TP <- Africa.risk.synchro.TP %>% 
+  left_join(country_region_df, by = c("Dest.Country" = "Country"))
+
+
+
+Synchro <- Africa.risk.synchro.TP %>% 
+  filter(Region == "Southern Africa") %>% 
+  filter(Dest.Country != "Cabo Verde") %>% 
+  ggplot() +
+  geom_col(aes(x=Date, y = TP, fill= "Transmission Potential"),alpha=0.8) +
+  scale_fill_manual(values = c("#ccdbfd"), name= " ") +  # Define color and legend title
+  geom_line(aes(x=Date, y = meanRisk*1000,color = African_Region),linewidth=1) +
+  #geom_line(data=JJ_sumcontinent %>% filter(Dest.Country %in% c("Senegal")),
+   #         aes(x=Date, y = megasumrisk_max*10, colour="Total Risk"),linetype="dashed",linewidth=1) +
+  #scale_color_manual(values = c("#325070","#ff4a2d","black"), name= "Risk from") + 
+  scale_y_continuous(sec.axis = sec_axis(~ ./1000, name = "Risk of Importation")) +
+  facet_wrap(~Dest.Country,scale="free_y")+
+  theme_minimal()+
+  #theme_ipsum( axis_title_size=20) +
+  theme(axis.text.x = element_text(size = 17, angle = 25, hjust = 1,family = "sans"),
+        axis.text.y = element_text(size = 17, hjust = 1,family = "sans"),
+        axis.title.y = element_text(vjust=0.5),
+        axis.title.y.right = element_text(vjust=1),
+        axis.title = element_text(size=20,family = "sans"),
+        strip.text = element_text(size= 19,family="sans",face = "bold", margin = margin(b = 20)),
+        legend.position = "top",
+        legend.background = element_rect( colour= "transparent",fill = "transparent"),
+        legend.text =element_text(size=21,family = "sans"),
+        legend.title = element_text(size=21)) +
+  labs(title = " ", x = "Date", y = "Mean Index P")
+
+
+Synchro
+
+
+##############################################################################################################################
+#####################################################. FIGURE 7  ###########################################################
+##############################################################################################################################
+
+## PieChar Scatterplot on Map 
+
+## Transmission Potential
+TP.Africa <- fread("Final/Extracted_Africa_TP_withLag_2019.csv") ## Country level
+TP.Africa <- TP.Africa[,-c(3,16)]
+TP.Africa.long <- pivot_longer(TP.Africa, cols = 3:14, names_to = "Date", values_to = "TP")
+TP.Africa.long$Date <- as.Date(TP.Africa.long$Date)
+
+## Risk Within the African Continent
+Africa.risk <- fread("Review/Risk_import_within_Africa.csv")
+Africa.risk$region_name.y <- gsub("province", "", Africa.risk$region_name.y, ignore.case = TRUE)
+Africa.risk$region_name.y <- gsub("district\\s*$", "", Africa.risk$region_name.y, ignore.case = TRUE)
+Africa.risk$region_name.y <- gsub("Region\\s*$", "", Africa.risk$region_name.y, ignore.case = TRUE)
+Africa.risk$Dest.Country <- trimws(Africa.risk$Dest.Country)
+Africa.risk$region_name.y <- trimws(Africa.risk$region_name.y)
+Africa.risk <- fread("Review/Risk_import_within_Africa.csv")
+Africa.risk$Airport_State.y <- gsub("province", "", Africa.risk$Airport_State.y, ignore.case = TRUE)
+Africa.risk$Airport_State.y <- gsub("district\\s*$", "", Africa.risk$Airport_State.y, ignore.case = TRUE)
+Africa.risk$Airport_State.y <- gsub("Region\\s*$", "", Africa.risk$Airport_State.y, ignore.case = TRUE)
+Africa.risk$Airport_State.y <- gsub("Department\\s*$", "", Africa.risk$Airport_State.y, ignore.case = TRUE)
+Africa.risk$Airport_State.y <- gsub("Metropolitan\\s*$", "", Africa.risk$Airport_State.y, ignore.case = TRUE)
+
+Africa.risk$Airport_State.y <- gsub("Governorate\\s*$", "", Africa.risk$Airport_State.y, ignore.case = TRUE)
+
+Africa.risk$Dest.Country <- trimws(Africa.risk$Dest.Country)
+Africa.risk$Airport_State.y <- trimws(Africa.risk$Airport_State.y)
+Africa.risk$Date <- as.Date(Africa.risk$Date)
+  
+North_Africa <-  c("Algeria","Egypt","Libya","Mauritania","Morocco","Tunisia","Sahrawi ADR")
+
+West_Africa <-   c("Benin", "Burkina Faso","Cabo Verde","Ivory Coast","Cote D'Ivoire","Gambia","Ghana","Guinea","Guinea-Bissau",
+                   "Liberia","Mali","Niger","Nigeria","Senegal","Sierra Leone","Togo")
+
+Central_Africa <-  c("Burundi","Cameroon","Central African Republic","Chad","Democratic Republic of the Congo","Republic of the Congo",
+                     "Equatorial Guinea","Sao Tome and Principe","Gabon","Congo")
+
+East_Africa <- c("Comoros","Djibouti","Eritrea","Ethiopia","Kenya","Madagascar","Mauritius","Rwanda","Seychelles","Somalia","South Sudan",
+                 "Sudan","United Republic of Tanzania","Tanzania","Uganda")
+
+Southern_Africa <- c("Angola","Botswana","Eswatini","Lesotho","Malawi","Mozambique","Namibia","South Africa","Zambia","Zimbabwe","Swaziland")
+
+country_region_df <- data.frame(Region = rep(c("North Africa", "West Africa", "Central Africa", "East Africa", "Southern Africa"), 
+                                             c(length(North_Africa), length(West_Africa), length(Central_Africa), length(East_Africa), length(Southern_Africa))),
+                                Country = c(North_Africa, West_Africa, Central_Africa, East_Africa, Southern_Africa))
+
+
+Africa.risk.pie <- Africa.risk %>% 
+  left_join(country_region_df, by = c("Orig.Country" = "Country"))
+
+
+Africa.risk.pie.year <- Africa.risk.pie %>% 
+  group_by(Dest.Country, Airport_State.y,Region) %>% 
+  summarise(meanRiskYear = mean(normalized_R_import, na.rm=TRUE))
+
+### Shapefile at Admin level 1 (By Province / State / Region) 
+spdf_africa_prov <- st_read("shapefile_admine_level1_africa/959cf709-3b35-4278-b297-a7442cdc37d0/afr_g2014_2013_1.shp")
+#plot(City)
+
+spdf_africa_prov$ADM0_NAME <- iconv(spdf_africa_prov$ADM0_NAME, from = "LATIN1", to = "UTF-8")
+spdf_africa_prov$ADM1_NAME <- iconv(spdf_africa_prov$ADM1_NAME, from = "LATIN1", to = "UTF-8")
+spdf_africa_prov$ADM0_NAME <- trimws(spdf_africa_prov$ADM0_NAME)
+spdf_africa_prov$ADM1_NAME <- trimws(spdf_africa_prov$ADM1_NAME)
+
+spdf_africa_prov$ADM0_NAME[spdf_africa_prov$ADM0_NAME == "Côte d'Ivoire"] <- "Ivory Coast"
+spdf_africa_prov$ADM1_NAME[spdf_africa_prov$ADM1_NAME == "Kigali City/Umujyi wa Kigali"] <- "Kigali"
+spdf_africa_prov$ADM1_NAME[spdf_africa_prov$ADM1_NAME == "West/Iburengerazuba"] <- "West"
+
+Africa.risk.pie.year.sf <- spdf_africa_prov %>% 
+  left_join(Africa.risk.pie.year, by= c("ADM0_NAME" = "Dest.Country" , "ADM1_NAME"= "Airport_State.y")) 
+
+
+### Addidng a pie chart to the map 
+library(scatterpie)
+valid  <- sf::st_make_valid(Africa.risk.pie.year.sf)
+center <- st_centroid(valid) ## to get mid points of polygons 
+center$Lat <- st_coordinates(center)[, 2]
+center$Long <- st_coordinates(center)[, 1]
+center <- st_drop_geometry(center)
+center$total <- length(na.omit(center$Continent))
+
+# Calculate the proportion of risk from Asia and South America
+center<-subset(unique(center),!is.na(meanRiskYear))
+
+
+center <- center %>% group_by(ADM1_NAME) %>%
+  mutate(total.annual.risk=sum(meanRiskYear)) %>%
+  ungroup()
+
+center <- center %>% group_by(Region) %>%
+  mutate(proportion.risk=meanRiskYear/total.annual.risk) %>%
+  ungroup()
+
+center$prop_West<-0
+center$prop_East<-0
+center$prop_Central<-0
+center$prop_Northen<-0
+center$prop_Southern<-0
+
+
+center$prop_West <- ifelse(center$Region == "West Africa", 
+                           center$proportion.risk,
+                           0)
+
+center$prop_East <- ifelse(center$Region == "East Africa", 
+                                   center$proportion.risk,
+                                   0)
+
+
+center$prop_Central <- ifelse(center$Region == "Central Africa", 
+                           center$proportion.risk,
+                           0)
+
+center$prop_Northen <- ifelse(center$Region == "North Africa", 
+                              center$proportion.risk,
+                              0)
+
+center$prop_Southern <- ifelse(center$Region == "Southern Africa", 
+                              center$proportion.risk,
+                              0)
+
+
+# Replace NA with 0 in 'prop_asia' and 'prop_south_america'
+center$prop_West[is.na(center$prop_West)] <- 0
+center$prop_East[is.na(center$prop_East)] <- 0
+center$prop_Central[is.na(center$prop_Central)] <- 0
+center$prop_Northen[is.na(center$prop_Northen)] <- 0
+center$prop_Southern[is.na(center$prop_Southern)] <- 0
+
+# Convert 'prop_asia' and 'prop_south_america' to numeric
+center$prop_West <- as.numeric(center$prop_West)
+center$prop_East <- as.numeric(center$prop_East)
+center$prop_Central <- as.numeric(center$prop_Central)
+center$prop_Northen <- as.numeric(center$prop_Northen)
+center$prop_Southern <- as.numeric(center$prop_Southern)
+
+library(ggnewscale)
+
+Africa.risk.pie.year.sf$custom_colour <-  ifelse(is.na(Africa.risk.pie.year.sf$meanRiskYear) | Africa.risk.pie.year.sf$meanRiskYear < 0, "Yes", "NO")
+
+
+plot1 <- ggplot() + 
+  geom_sf(data=unique(Africa.risk.pie.year.sf),aes(fill= custom_colour == "Yes"), colour="#ced4da",lwd=0.2,alpha=0.9) +
+  scale_fill_manual(values= c("TRUE"= "transparent", "FALSE" = "#ced4da"),guide = "none") +
+  new_scale_fill() +
+  geom_sf(data=spdf_africa, fill = "NA",colour= "#ff4a2d", lwd=0.7,alpha=0.7)+
+  #geom_text(data = centroids, aes(label = adm0_a3_is, x = st_coordinates(centroids)[, 1], 
+  #                                y = st_coordinates(centroids)[, 2]), nudge_y = 0, size = 3.5,color="#2d00f7",fontface= "bold")+
+  geom_scatterpie(data=center,aes(x=Long, y=Lat, r=0.55*(4--log10(as.numeric(meanRiskYear)))), cols=c("prop_West", "prop_East","prop_Central","prop_Northen","prop_Southern"), 
+                  alpha=0.8,color = 'black',position_jitter()) + 
+  scale_fill_manual(name="Origin Country",values= c("#264653","#2a9d8f","#e9c46a","#f4a261","#e76f51"),
+                    labels= c("West Africa", "East Africa", "Central Africa", "Northern Africa", "Southern Africa"),guide = guide_legend(override.aes = list(size = 5),ncol=3))+
+  scale_radius(range = c(1, 12), name="Risk of Importation")+
+  # Rename the size legend for geom_point
+  theme_minimal()+
+  #theme_ipsum(axis_title_size = 15, base_size = 15, subtitle_size = 18)+
+  theme(plot.background = element_rect(color='white', fill="white"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank(),
+        plot.title = element_text(size=24,face = "bold"),
+        strip.text = element_text(size = 30, face="bold"),
+        legend.box= "vertical",
+        legend.position = "bottom",
+        legend.text = element_text(size = 23, face="bold"),
+        legend.title = element_text(size = 23, face="bold"),
+        legend.margin = margin(t = -1, r = 0, b = 0, l = 0),
+        plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm"))+
+  xlab(" ") + ylab(" ") +
+  ggtitle("TP")
+plot1
+
+##############################################################################################################################
+## Combining Africa, Asia and South America Risk 
+##############################################################################################################################
+combined.jj.spdf_province
+##############################################################################################################################
+## Transmission Potential
+TP.Africa <- fread("Final/Extracted_Africa_TP_withLag_2019.csv") ## Country level
+TP.Africa <- TP.Africa[,-c(3,16)]
+TP.Africa.long <- pivot_longer(TP.Africa, cols = 3:14, names_to = "Date", values_to = "TP")
+TP.Africa.long$Date <- as.Date(TP.Africa.long$Date)
+
+## Risk Within the African Continent
+Africa.risk.pie ## computed previously (see previous plot) 
+Africa.risk.pie$Date <- as.Date(Africa.risk.pie$Date)
+
+Africa.risk.pie.TP <- Africa.risk.pie %>% 
+  left_join(TP.Africa.long, by = c("Dest.Country" = "COUNTRY", "Date" = "Date"))
+
+## Now removing those months where TP <1 
+Africa.West <- Africa.risk.pie.TP %>% 
+  filter(TP > 1) %>% 
+  filter(Region =="West Africa") %>% 
+  group_by(Region,Dest.Country,Airport_State.y) %>% 
+  summarise(m.annal.risk = sum(normalized_R_import))
+
+Africa.East <- Africa.risk.pie.TP %>% 
+  filter(TP > 1) %>% 
+  filter(Region =="East Africa") %>% 
+  group_by(Region,Dest.Country,Airport_State.y) %>% 
+  summarise(m.annal.risk = sum(normalized_R_import))
+
+Africa.Central <- Africa.risk.pie.TP %>% 
+  filter(TP > 1) %>% 
+  filter(Region =="Central Africa") %>% 
+  group_by(Region,Dest.Country,Airport_State.y) %>% 
+  summarise(m.annal.risk = sum(normalized_R_import))
+
+Africa.North <- Africa.risk.pie.TP %>% 
+  filter(TP > 1) %>% 
+  filter(Region =="North Africa") %>% 
+  group_by(Region,Dest.Country,Airport_State.y) %>% 
+  summarise(m.annal.risk = sum(normalized_R_import))
+
+Africa.Southern <- Africa.risk.pie.TP %>% 
+  filter(TP > 1) %>% 
+  filter(Region =="Southern Africa") %>% 
+  group_by(Region,Dest.Country,Airport_State.y) %>% 
+  summarise(m.annal.risk = sum(normalized_R_import))
+
+
+# Merge with the shapefile
+#Rename countries if needed 
+
+spdf_africa_West <- spdf_africa_prov %>% 
+  left_join(Africa.West, by= c("ADM0_NAME" = "Dest.Country","ADM1_NAME" = "Airport_State.y" ))
+#spdf_africa_riskfrAsia2$Continent <- ifelse(is.na(spdf_africa_riskfrAsia2$Continent), "Asia", spdf_africa_riskfrAsia2$Continent)
+
+spdf_africa_East <- spdf_africa_prov %>% 
+  left_join(Africa.East, by= c("ADM0_NAME" = "Dest.Country","ADM1_NAME" = "Airport_State.y" ))
+
+spdf_africa_Central <- spdf_africa_prov %>% 
+  left_join(Africa.Central, by= c("ADM0_NAME" = "Dest.Country","ADM1_NAME" = "Airport_State.y" ))
+
+spdf_africa_North <- spdf_africa_prov %>% 
+  left_join(Africa.North, by= c("ADM0_NAME" = "Dest.Country","ADM1_NAME" = "Airport_State.y" ))
+
+spdf_africa_South <- spdf_africa_prov %>% 
+  left_join(Africa.Southern, by= c("ADM0_NAME" = "Dest.Country","ADM1_NAME" = "Airport_State.y" ))
+
+combined.Africa.prop <- rbind(spdf_africa_West,spdf_africa_East,spdf_africa_Central,
+                              spdf_africa_North,spdf_africa_South)
+library(scatterpie)
+valid  <- sf::st_make_valid(combined.Africa.prop)
+center2 <- st_centroid(valid) ## to get mid points of polygons 
+center2$Lat <- st_coordinates(center2)[, 2]
+center2$Long <- st_coordinates(center2)[, 1]
+center2 <- st_drop_geometry(center2)
+center2$total <- length(na.omit(center2$Continent))
+
+center2<-subset(unique(center2),!is.na(m.annal.risk))
+
+center2<-center2 %>% group_by(ADM1_NAME) %>%
+  mutate(total.annual.risk=sum(m.annal.risk)) %>%
+  ungroup()
+
+center2<-center2 %>% group_by(Region) %>%
+  mutate(proportion.risk=m.annal.risk/total.annual.risk) %>%
+  ungroup()
+
+center2$prop_West<-0
+center2$prop_East<-0
+center2$prop_Central<-0
+center2$prop_Northen<-0
+center2$prop_Southern<-0
+
+
+center2$prop_West <- ifelse(center2$Region == "West Africa", 
+                           center2$proportion.risk,
+                           0)
+
+center2$prop_East <- ifelse(center2$Region == "East Africa", 
+                           center2$proportion.risk,
+                           0)
+
+
+center2$prop_Central <- ifelse(center2$Region == "Central Africa", 
+                              center2$proportion.risk,
+                              0)
+
+center2$prop_Northen <- ifelse(center2$Region == "North Africa", 
+                              center2$proportion.risk,
+                              0)
+
+center2$prop_Southern <- ifelse(center2$Region == "Southern Africa", 
+                               center2$proportion.risk,
+                               0)
+
+
+# Replace NA with 0 in 'prop_asia' and 'prop_south_america'
+center2$prop_West[is.na(center2$prop_West)] <- 0
+center2$prop_East[is.na(center2$prop_East)] <- 0
+center2$prop_Central[is.na(center2$prop_Central)] <- 0
+center2$prop_Northen[is.na(center2$prop_Northen)] <- 0
+center2$prop_Southern[is.na(center2$prop_Southern)] <- 0
+
+# Convert 'prop_asia' and 'prop_south_america' to numeric
+center2$prop_West <- as.numeric(center2$prop_West)
+center2$prop_East <- as.numeric(center2$prop_East)
+center2$prop_Central <- as.numeric(center2$prop_Central)
+center2$prop_Northen <- as.numeric(center2$prop_Northen)
+center2$prop_Southern <- as.numeric(center2$prop_Southern)
+
+combined.Africa.prop$custom_colour <-  ifelse(is.na(combined.Africa.prop$m.annal.risk) | combined.Africa.prop$m.annal.risk < 0, "Yes", "NO")
+
+
+plot2 <- ggplot() + 
+  geom_sf(data=unique(combined.Africa.prop),aes(fill= custom_colour == "Yes"),colour="#ced4da", lwd=0.2) +
+  scale_fill_manual(values= c("TRUE"= "transparent", "FALSE" = "#ced4da" ),guide = "none") +
+  new_scale_fill() +
+  geom_sf(data=spdf_africa, fill = "NA",colour= "#ff4a2d", lwd=0.7,alpha=0.7)+
+  geom_scatterpie(data=center2,aes(x=Long, y=Lat, r=0.55*(4--log10(as.numeric(total.annual.risk)))),  cols=c("prop_West", "prop_East","prop_Central","prop_Northen","prop_Southern"), 
+                  alpha=0.8,color = 'black',position_jitter()) + 
+  #scale_size(range = c(1, 10), name="Risk of Importation")+
+  scale_fill_manual(name="Origin Country",values= c("#264653","#2a9d8f","#e9c46a","#f4a261","#e76f51"),
+                    labels= c("West Africa", "East Africa", "Central Africa", "Northern Africa", "Southern Africa"),guide = guide_legend(override.aes = list(size = 5),ncol=3))+
+  #geom_text(data = centroids, aes(label = adm0_a3_is, x = st_coordinates(centroids)[, 1], 
+  #                                    y = st_coordinates(centroids)[, 2]), nudge_y = 0.1, size = 2.5,color="#2d00f7",fontface = 'bold')+
+  #scale_size_area(max_size = 12, name = "Risk of Importation")+
+  # Rename the size legend for geom_point
+  theme_minimal()+
+  #theme_ipsum(axis_title_size = 15, base_size = 15, subtitle_size = 18)+
+  theme(plot.background = element_rect(color='white', fill="white"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank(),
+        plot.title = element_text(size=24,face = "bold"),
+        strip.text = element_text(size = 30, face="bold"),
+        legend.box= "vertical",
+        legend.position = "bottom",
+        legend.text = element_text(size = 23, face="bold"),
+        legend.title = element_text(size = 23, face="bold"),
+        legend.margin = margin(t = -1, r = 0, b = 0, l = 0),
+        plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm"))+
+  xlab(" ") + ylab(" ") +
+  ggtitle("TP > 1")
+plot2
+
+################# Timeline including African risk 
+
+Risks_rev_barplot <- fread("Review/Risk_inter.csv")
+Risks_rev_barplot$Date <- as.Date(Risks_rev_barplot$Date)
+Risks_rev_barplot$REGION
+Risks_rev_barplot2 <- Risks_rev_barplot %>% 
+  group_by(Dest.Country,Date,CONTINENT) %>% 
+  summarise(sumRisk=mean(sumRisk, na.rm=T),
+            REGION = REGION)
+
+Risks_rev_barplot2$Dest.Country <- with(Risks_rev_barplot2, reorder(Dest.Country, -log(sumRisk), median, na.rm=T))
+Risks_rev_barplot2 <- Risks_rev_barplot2 %>% 
+  filter(!Dest.Country %in% c("Reunion", "Seychelles","Cape Verde","Cabo Verde"))
+
+
+##Load Transmission Potential
+TP.Africa <- fread("Final/Extracted_Africa_TP_withLag_2019.csv") ## Country level
+TP.Africa <- TP.Africa[,-c(3,16)]
+TP.Africa.long <- pivot_longer(TP.Africa, cols = 3:14, names_to = "Date", values_to = "TP")
+TP.Africa.long$Date <- as.Date(TP.Africa.long$Date)
+
+## Joining the TP to the risk 
+Risks_rev_timeline <- Risks_rev_barplot2 %>% 
+  left_join(TP.Africa.long, by = c("Dest.Country" = "COUNTRY", "Date" = "Date")) %>% 
+  unique()
+
+Risks_rev_timeline$sumRisk_Max <- Risks_rev_timeline$sumRisk/max(Risks_rev_timeline$sumRisk)
+Risks_rev_timeline$TP_Max <- Risks_rev_timeline$TP/max(Risks_rev_timeline$TP, na.rm=T)
+
+Risks_rev_timeline_sumcontinent <- Risks_rev_timeline %>% 
+  group_by(Date, Dest.Country) %>% 
+  summarise(megasumrisk_max = sum(sumRisk_Max))
+
+
+## Groupings for plots for supplementary
+
+g2 <- c("Tunisia", "Ivory Coast","Ghana","Cameroon","Central African Republic","Equatorial Guinea","South Sudan",
+        "Namibia","Zambia","Algeria","Sudan")
+g3 <- c("Gabon","Democratic Republic of the Congo","Mauritania","Guinea","Madagascar","Malawi","Zimbabwe","Botswana")
+g4 <- c("Togo","Sierra Leone","Burundi","Benin","Burkina Faso","Guinea Bissau","Djibouti","Eritrea","Congo","Liberia")
+g5 <- c("Swaziland","Libya","Comoros")
+g5.2<- c("Mali","Niger","Somalia","Gambia")
+gfree <- c("Sao Tome and Principe", "Lesotho","Chad","Mozambique","Mali", "Niger", "Somalia", "Gambia")
+gmain <- c("Angola", "Egypt", "Ethiopia", "Kenya", "Mauritius", "Morocco", "Nigeria", "Rwanda", "Senegal", "South Africa" , "Tanzania", "Uganda")
+
+
+
+pdf("Review/timeline_all_S6E.pdf", width=25, height=17)
+Risks_rev_timeline %>% 
+  #filter(CONTINENT != "Africa") %>% 
+  #filter(!Dest.Country %in% c("Reunion", "Seychelles") ) %>% 
+  #filter(!Dest.Country %in% c( "Mauritius", "Angola","Egypt","Ethiopia", "Kenya",
+  #           "Morocco", "Nigeria", "Rwanda", "South Africa", "Uganda","Senegal", "Tanzania", "Cape Verde")) %>% 
+  filter(Dest.Country %in% g2 ) %>% 
+  ggplot() +
+  geom_col(aes(x=Date, y = TP_Max, fill= "Transmission Potential"),alpha=0.8) +
+  scale_fill_manual(values = c("#ccdbfd"), name= " ") +  # Define color and legend title
+  geom_line(aes(x=Date, y = sumRisk_Max*10,color = CONTINENT),linewidth=1) +
+  #geom_line(aes(x = Date, 
+   #             y = ifelse(CONTINENT %in% c("Asia", "South America"), sumRisk_Max * 100, sumRisk_Max*10), 
+    #            color = CONTINENT), 
+     #       linewidth = 1)+
+  geom_line(data=Risks_rev_timeline_sumcontinent %>% filter(Dest.Country %in% g2),
+            aes(x=Date, y = megasumrisk_max*10, colour="Total Risk"),linetype="dashed",linewidth=1) +
+  scale_color_manual(values = c("#f77f00","#325070","#ff4a2d","black"), name= "Risk from") + 
+  scale_y_continuous(sec.axis = sec_axis(~ ./10, name = "Risk of Importation")) +
+  facet_wrap(~Dest.Country,scale="free_y",nrow=4)+
+  theme_minimal()+
+  #theme_ipsum( axis_title_size=20) +
+  theme(axis.text.x = element_text(size = 19, angle = 25, hjust = 1,family = "sans"),
+        axis.text.y = element_text(size = 19, hjust = 1,family = "sans"),
+        axis.title.y = element_text(vjust=0.5),
+        axis.title.y.right = element_text(vjust=1),
+        axis.title = element_text(size=20,family = "sans"),
+        strip.text = element_text(size= 19,family="sans",face = "bold", margin = margin(b = 20)),
+        legend.position = "top",
+        legend.background = element_rect( colour= "transparent",fill = "transparent"),
+        legend.text =element_text(size=25,family = "sans",face="bold"),
+        legend.title = element_text(size=27)) +
+  labs(title = " ", x = "Date", y = "Mean Index P")
+dev.off()
+
+#"#f77f00"
